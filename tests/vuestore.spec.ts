@@ -3,6 +3,7 @@ require('jsdom-global')()
 import chai, {assert, expect} from 'chai';
 import spies from 'chai-spies';
 import VueStore from '../src';
+import Component from "vue-class-component";
 import Vue, {ComponentOptions} from "vue";
 import { mount } from '@vue/test-utils'
 
@@ -366,6 +367,29 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
     expect(wrapper.find('#value').text()).to.equal('200')
     expect(wrapper.find('#array').text()).to.equal('$1+$2+$3')
     expect(wrapper.find('#deep').text()).to.equal('30')
+  })
+
+  it("class components should be reactive", async () => {
+    @storeFunction
+    class Store {
+      value: number = 10
+    }
+    let store = new Store()
+
+    @Component({
+      template: `<div>{{ value }}</div>`
+    })
+    class TestClassComponent extends Vue {
+      get value() {
+        return store.value
+      }
+    }
+
+    const wrapper = mount(TestClassComponent)
+    expect(wrapper.text()).to.equal('10')
+    store.value = 20
+    await Vue.nextTick()
+    expect(wrapper.text()).to.equal('20')
   })
 }
 
