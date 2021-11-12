@@ -1,11 +1,15 @@
+require('jsdom-global')()
+
 import chai, {assert, expect} from 'chai';
 import spies from 'chai-spies';
 import VueStore from '../src';
-import Vue from "vue";
+import Vue, {ComponentOptions} from "vue";
+import { mount } from '@vue/test-utils'
 
 chai.use(spies)
 
 type C = { new(...args: any[]): {} }
+type CO = ComponentOptions<Vue>
 
 function testStores(storeFunction: <T extends C>(constructor: T) => T) {
   it("`this` should be preserved", () => {
@@ -282,6 +286,86 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
       assert.fail('a net-negative GC pass should run when creating 200,000 stores')
     }
     done()
+  })
+
+  it("data should be reactive in components", async () => {
+    @storeFunction
+    class Store {
+      value: number = 10
+      array: any[] = []
+      deep = {value: 20}
+    }
+    let store = new Store()
+
+    let TestComponent: CO = {
+      template: `<div>
+      <div id="value">{{ value }}</div>
+      <div id="array">{{ array }}</div>
+      <div id="deep">{{ deep.value }}</div>
+      </div>`,
+      computed: {
+        value: function() { return store.value },
+        array: function() { return store.array.join('+') },
+        deep: function() { return store.deep },
+      },
+    }
+
+    const wrapper = mount(TestComponent)
+    expect(wrapper.find('#value').text()).to.equal('10')
+    expect(wrapper.find('#array').text()).to.equal('')
+    expect(wrapper.find('#deep').text()).to.equal('20')
+    store.value = 20
+    store.array = [1, 2, 3]
+    store.deep.value = 30
+    await Vue.nextTick()
+    expect(wrapper.find('#value').text()).to.equal('20')
+    expect(wrapper.find('#array').text()).to.equal('1+2+3')
+    expect(wrapper.find('#deep').text()).to.equal('30')
+  })
+
+  it("computed properties should be reactive in components", async () => {
+    @storeFunction
+    class Store {
+      value: number = 10
+      array: any[] = []
+      deepValue = 20
+
+      get computedValue() {
+        return this.value * 10
+      }
+      get computedArray() {
+        return this.array.map(v => '$' + v)
+      }
+      get computedDeep() {
+        return {value: this.deepValue}
+      }
+    }
+    let store = new Store()
+
+    let TestComponent: CO = {
+      template: `<div>
+      <div id="value">{{ value }}</div>
+      <div id="array">{{ array }}</div>
+      <div id="deep">{{ deep.value }}</div>
+      </div>`,
+      computed: {
+        value: function() { return store.computedValue },
+        array: function() { return store.computedArray.join('+') },
+        deep: function() { return store.computedDeep },
+      },
+    }
+
+    const wrapper = mount(TestComponent)
+    expect(wrapper.find('#value').text()).to.equal('100')
+    expect(wrapper.find('#array').text()).to.equal('')
+    expect(wrapper.find('#deep').text()).to.equal('20')
+    store.value = 20
+    store.array = [1, 2, 3]
+    store.deepValue = 30
+    await Vue.nextTick()
+    expect(wrapper.find('#value').text()).to.equal('200')
+    expect(wrapper.find('#array').text()).to.equal('$1+$2+$3')
+    expect(wrapper.find('#deep').text()).to.equal('30')
   })
 }
 
