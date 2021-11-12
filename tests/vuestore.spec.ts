@@ -86,7 +86,7 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
     store['notDeclared'] = 300
     store['late'] = 400
 
-    await store.$nextTick()
+    await Vue.nextTick()
 
     expect(plainSpy).to.be.called.with(100, 10)
     expect(declaredSpy).to.be.called.with(200, 20)
@@ -112,7 +112,7 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
 
     store.value = 100
 
-    await store.$nextTick()
+    await Vue.nextTick()
 
     expect(plusTenSpy).to.be.called.with(110, 20)
   });
@@ -135,7 +135,7 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
 
     store.changePlain()
 
-    await store.$nextTick()
+    await Vue.nextTick()
 
     expect(plainSpy).to.be.called.with(100, 10)
   });
@@ -149,6 +149,7 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
       immediate = 30
       nesting = {value: 40}
       replace: object = {value: 50}
+      array: any[] = []
       replaceWithMissing: object = {value: 10}
       replaceFromMissing: object = {}
 
@@ -159,6 +160,7 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
         stringSpy(...args),
         nestingSpy(...args),
         replaceSpy(...args),
+        arrayReplaceSpy(...args),
         nestedReplaceSpy(...args),
         nestedReplaceWithMissingSpy(...args),
         nestedReplaceFromMissingSpy(...args),
@@ -190,6 +192,10 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
         this.spies.replaceSpy(...args)
       }
 
+      'on:array'(...args) {
+        this.spies.arrayReplaceSpy(...args)
+      }
+
       'on:replace.value'(...args) {
         this.spies.nestedReplaceSpy(...args)
       }
@@ -213,6 +219,7 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
       stringSpy: chai.spy(),
       nestingSpy: chai.spy(),
       replaceSpy: chai.spy(),
+      arrayReplaceSpy: chai.spy(),
       nestedReplaceSpy: chai.spy(),
       nestedReplaceWithMissingSpy: chai.spy(),
       nestedReplaceFromMissingSpy: chai.spy(),
@@ -229,11 +236,13 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
     let original = store.replace
     let replacement = {value: 500}
     store.replace = replacement
+    let originalArray = store.array
+    let replacementArray = [100]
+    store.array = replacementArray
     store.replaceWithMissing = {}
     store.replaceFromMissing = {value: 10}
 
-
-    await store.$nextTick()
+    await Vue.nextTick()
 
     expect(spies.plainSpy).to.be.called.with(100, 10)
     expect(spies.deepSpy).to.be.called.with({value: 200}, {value: 200})
@@ -241,6 +250,7 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
     expect(spies.stringSpy).to.be.called.with('new', 'old')
     expect(spies.nestingSpy).to.be.called.with(400, 40)
     expect(spies.replaceSpy).to.be.called.with(replacement, original)
+    expect(spies.arrayReplaceSpy).to.be.called.with(replacementArray, originalArray)
     expect(spies.nestedReplaceSpy).to.be.called.with(500, 50)
     expect(spies.nestedReplaceWithMissingSpy).to.be.called.with(undefined, 10)
     expect(spies.nestedReplaceFromMissingSpy).to.be.called.with(10, undefined)
