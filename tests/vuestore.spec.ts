@@ -140,6 +140,54 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
     expect(plainSpy).to.be.called.with(100, 10)
   });
 
+  it("created hook should run", async () => {
+    let constructorSpy = chai.spy()
+    let beforeCreateSpy = chai.spy()
+    let createdSpy = chai.spy()
+
+    let spies = {
+      constructorSpy(instance) {
+        constructorSpy()
+        // can't watch here
+        expect(instance).not.to.have.property('_watchers')
+        expect(() => instance.$watch('x', () => {})).to.throw(TypeError)
+      },
+      beforeCreateSpy(instance) {
+        expect(constructorSpy).to.be.called()
+        beforeCreateSpy()
+        // the data has been ripped out already
+        expect(instance).not.to.have.property('x')
+      },
+      createdSpy(instance) {
+        expect(beforeCreateSpy).to.be.called()
+        createdSpy()
+        // the data has been added back and we can now watch
+        expect(instance).to.have.property('x')
+        expect(instance).to.have.property('_watchers')
+        expect(() => instance.$watch('x', () => {})).not.to.throw(TypeError)
+      },
+    }
+
+    @storeFunction
+    class Store {
+      x = 10
+
+      constructor() {
+        spies.constructorSpy(this)
+      }
+
+      beforeCreate() {
+        spies.beforeCreateSpy(this)
+      }
+      created() {
+        spies.createdSpy(this)
+      }
+    }
+    let store = new Store()
+
+    expect(createdSpy).to.be.called()
+  });
+
   it("watches should trigger", async () => {
     @storeFunction
     class Store {
