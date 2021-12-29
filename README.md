@@ -55,6 +55,13 @@ export class Store {
     setInterval(() => this.value++, 1000);
   }
 
+  // You can't call $emit/$watch/etc. in your constructor, since your 
+  // object isn't a fully-fledged Vue object yet, so the 'created' 
+  // lifecycle hook is exposed for that purpose
+  created() {
+    this.$watch('name', () => { console.log('the name changed') })
+  }
+
   // getters are converted to (cached) computed properties
   public get double(): number {
     return this.value * 2
