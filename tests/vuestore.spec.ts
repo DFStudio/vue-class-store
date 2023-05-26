@@ -136,6 +136,8 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
       syncSpy: spy(),
       nestedReplaceWithMissingSpy: spy(),
       nestedReplaceFromMissingSpy: spy(),
+      nullObjectChainSpy: spy(),
+      nullObjectSpy: spy(),
       explicitNestedSpy: spy(),
       unwatchedGetterSpy: spy(),
       watchedGetterSpy: spy(),
@@ -154,6 +156,8 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
       syncValue = 30
       replaceWithMissing: object = {value: 10}
       replaceFromMissing: object = {}
+      nullObjectChain: object = {}
+      nullObject: object | null = null
       explicitNested = reactive({value: 60})
       getterData = 50
 
@@ -210,6 +214,14 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
         spies.nestedReplaceFromMissingSpy(...args)
       }
 
+      'on:nullObjectChain.chain.value'(...args) {
+        spies.nullObjectChainSpy(...args)
+      }
+
+      'on:nullObject.value'(...args) {
+        spies.nullObjectSpy(...args)
+      }
+
       'on:explicitNested.value'(...args) {
         spies.explicitNestedSpy(...args)
       }
@@ -236,6 +248,8 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
     store.replace = replacement
     store.replaceWithMissing = {}
     store.replaceFromMissing = {value: 10}
+    store.nullObjectChain['chain'] = {value: 10}
+    store.nullObject = {value: 10}
     store.explicitNested.value = 70
     store.getterData = 25
 
@@ -251,6 +265,8 @@ function testStores(storeFunction: <T extends C>(constructor: T) => T) {
     expect(spies.nestedReplaceSpy, 'nestedReplace').to.be.called.with(500, 50)
     expect(spies.nestedReplaceWithMissingSpy, 'nestedReplaceWithMissing').to.be.called.with(undefined, 10)
     expect(spies.nestedReplaceFromMissingSpy, 'nestedReplaceFromMissing').to.be.called.with(10, undefined)
+    expect(spies.nullObjectChainSpy, 'nullObjectChain').to.be.called.with(10, undefined)
+    expect(spies.nullObjectSpy, 'nullObject').to.be.called.with(10, undefined)
     expect(spies.explicitNestedSpy, 'explicit nested reactive({})').to.be.called.with(70, 60)
     expect(spies.watchedGetterSpy, 'watched getter changed never accessed').to.be.called.with(25)
     expect(spies.unwatchedGetterSpy, 'unwatched getter changed never accessed').not.to.be.called()
