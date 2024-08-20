@@ -12,7 +12,8 @@ function getAllDescriptors(model: object | null): Record<string, PropertyDescrip
 }
 
 function getValue(value: Record<any, any> | null | undefined, path: string[]) {
-  for (const key of path) {
+  for (let i = 0; i < path.length; i++){
+    const key = path[i];
     if (value == null)
       value = undefined
     else
