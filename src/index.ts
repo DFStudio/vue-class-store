@@ -120,10 +120,10 @@ function findStorePrototype(prototype: object): object | null {
 
 interface VueStore {
   new(): object
-  <T extends new(...args) => {}>(constructor: T): T
+  <T extends abstract new(...args: any[]) => any>(constructor: T): T
 }
 
-const VueStore: VueStore = function VueStore(this: object, constructor?: { new(...args): {} }): any {
+const VueStore: VueStore = function VueStore(this: object, constructor?: { new(...args: any[]): {} }): any {
   if (constructor === undefined) { // called as a bare constructor
     if (!hasStoreFlag(Object.getPrototypeOf(this))) {
       throw TypeError(`Class ${this.constructor.name} isn't decorated with @VueStore`)
