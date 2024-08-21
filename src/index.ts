@@ -1,7 +1,5 @@
 import {computed, reactive, watch, WatchOptions} from 'vue'
 
-type Constructor<T> = new(...args) => T
-
 function getAllDescriptors(model: object | null): Record<string, PropertyDescriptor> {
   if (model === null || model === Object.prototype) {
     return {}
@@ -90,16 +88,8 @@ function addReactivity<T extends object>(instance: T, descriptors: [string, Prop
   return reactiveInstance as T
 }
 
-export function makeReactive<T extends object>(model: T): T {
+export function createStore<T extends object>(model: T): T {
   return addReactivity(model, Object.entries(getAllDescriptors(model)))
-}
-
-export interface VueStore {
-  new(): object
-
-  <T extends Constructor<any>>(constructor: T): T
-
-  create<T extends object>(model: T): T
 }
 
 type VueStoreMetadata = {}
@@ -128,6 +118,10 @@ function findStorePrototype(prototype: object): object | null {
   return null
 }
 
+interface VueStore {
+  new(): object
+  <T extends new(...args) => {}>(constructor: T): T
+}
 
 const VueStore: VueStore = function VueStore(this: object, constructor?: { new(...args): {} }): any {
   if (constructor === undefined) { // called as a bare constructor
@@ -165,7 +159,5 @@ const VueStore: VueStore = function VueStore(this: object, constructor?: { new(.
     return wrapper
   }
 } as VueStore
-
-VueStore.create = makeReactive
 
 export default VueStore

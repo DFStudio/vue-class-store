@@ -20,6 +20,7 @@ xdescribe('Memory management', () => {
     done()
   })
 
+  // so far haven't succeeded in implementing this
   it("should not hold references when watches depend on a global store", function(done) {
     this.timeout(5000)
 

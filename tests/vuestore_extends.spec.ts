@@ -1,5 +1,5 @@
 import {assert, expect} from 'chai';
-import VueStore from '../src';
+import VueStore, {createStore} from '../src';
 import Vue, {computed, nextTick, reactive, watch} from "vue";
 import {spy, SpySet} from "./test_utils";
 
@@ -950,7 +950,7 @@ it("when not extending VueStore the original won't be reactive", async () => {
   }
 
   const original = new Store()
-  const store = VueStore.create(original)
+  const store = createStore(original)
   const valueSpy = spy()
   watch(() => store.value, valueSpy)
 

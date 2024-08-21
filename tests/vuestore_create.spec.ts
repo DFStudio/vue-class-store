@@ -1,11 +1,11 @@
 import {assert, expect} from 'chai';
-import VueStore from '../src';
+import {createStore} from '../src';
 import Vue, {computed, nextTick, reactive, watch} from "vue";
 import {spy, SpySet} from "./test_utils";
 
 type C = { new(...args: any[]): {} }
 
-describe("VueStore.create", () => {
+describe("createStore", () => {
   it("properties should proxied from the original instance", () => {
     class Store {
       plain = 10
@@ -19,7 +19,7 @@ describe("VueStore.create", () => {
     }
 
     const original = new Store()
-    let store = VueStore.create(original)
+    let store = createStore(original)
     expect(store).to.include({plain: 10, 'string!': 20, declared: 30, notDeclared: 40})
     expect(original).to.include({plain: 10, 'string!': 20, declared: 30, notDeclared: 40})
 
@@ -43,7 +43,7 @@ describe("VueStore.create", () => {
       }
     }
 
-    let store = VueStore.create(new Store())
+    let store = createStore(new Store())
     store['late'] = 40
 
     const spies = new SpySet()
@@ -114,7 +114,7 @@ describe("VueStore.create", () => {
       }
     }
 
-    let store = VueStore.create(new Store())
+    let store = createStore(new Store())
 
     expect(spies.immediateSpy).to.be.called.with(30)
     expect(spies.computedGetterSpy, 'watched getter initial value computed').to.be.called.with(40)
@@ -175,7 +175,7 @@ describe("VueStore.create", () => {
       }
     }
 
-    let store = VueStore.create(new Store())
+    let store = createStore(new Store())
 
     store.nested.value++
     store.replaced = {value: -20}
@@ -229,7 +229,7 @@ describe("VueStore.create", () => {
       }
     }
 
-    let store = VueStore.create(new Store())
+    let store = createStore(new Store())
 
     store.undefinedRoot = undefined
     store.undefinedChain.chain = undefined
@@ -270,7 +270,7 @@ describe("VueStore.create", () => {
       }
     }
 
-    let store = VueStore.create(new Store())
+    let store = createStore(new Store())
 
     store.runtimeValue++
     store.indirectValue++
@@ -291,7 +291,7 @@ describe("VueStore.create", () => {
     }
 
     let valueSpy = spy()
-    let store = VueStore.create(new Store())
+    let store = createStore(new Store())
     watch(() => store.value, valueSpy)
 
     store.changeValue()
@@ -312,7 +312,7 @@ describe("VueStore.create", () => {
     }
 
     let valueSpy = spy()
-    let store = VueStore.create(new Store())
+    let store = createStore(new Store())
     watch(() => store.value, valueSpy)
 
     store.changeValue()
@@ -324,7 +324,7 @@ describe("VueStore.create", () => {
     class Store {
     }
 
-    let store = VueStore.create(new Store())
+    let store = createStore(new Store())
 
     expect(store).to.be.instanceof(Store)
   });
@@ -341,7 +341,7 @@ describe("VueStore.create", () => {
       }
 
       const original = new Store()
-      const store = VueStore.create(original)
+      const store = createStore(original)
       const valueSpy = spy()
       watch(() => store.value, valueSpy)
 
@@ -359,7 +359,7 @@ describe("VueStore.create", () => {
       expect(store.value).to.equal(22)
     });
 
-    it("watches will be duplicated if the object is passed to VueStore.create multiple times", async () => {
+    it("watches will be duplicated if the object is passed to createStore multiple times", async () => {
       let spies = {
         plainSpy: spy(),
         lateSpy: spy(),
@@ -374,11 +374,11 @@ describe("VueStore.create", () => {
         }
       }
 
-      let store = VueStore.create(new Store())
+      let store = createStore(new Store())
       store['on:late'] = function(...args) {
         spies.lateSpy(...args)
       }
-      store = VueStore.create(store)
+      store = createStore(store)
 
       store.plain++
       store.late++
@@ -405,7 +405,7 @@ describe("VueStore.create", () => {
         }
       }
 
-      let store = VueStore.create(new Store())
+      let store = createStore(new Store())
 
       expect(() => store.privateValue).to.throw(TypeError)
       expect(() => store.privateValue = 20).to.throw(TypeError)
