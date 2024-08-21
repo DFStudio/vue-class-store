@@ -1,6 +1,6 @@
 /**
  * Bundle of: vue-class-store
- * Generated: 2024-08-20
+ * Generated: 2024-08-21
  * Version: 3.0.0
  */
 
@@ -92,7 +92,7 @@ function addReactivity(instance, descriptors) {
     addWatches(reactiveInstance, descriptors);
     return reactiveInstance;
 }
-function makeReactive(model) {
+function createStore(model) {
     return addReactivity(model, Object.entries(getAllDescriptors(model)));
 }
 var vueStoreMetadata = Symbol("@@vueStoreMetadata");
@@ -158,7 +158,6 @@ var VueStore = function VueStore(constructor) {
         return wrapper;
     }
 };
-VueStore.create = makeReactive;
 
 export default VueStore;
-export { makeReactive };
+export { createStore };
