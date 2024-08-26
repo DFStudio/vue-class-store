@@ -90,6 +90,9 @@
   function createStore(model) {
       return addReactivity(model, Object.entries(getAllDescriptors(model)));
   }
+  const Reactive = function Reactive() {
+      return vue.reactive(this);
+  };
   const vueStoreMetadata = Symbol("@@vueStoreMetadata");
   function getStoreMetadata(prototype) {
       var _a;
@@ -147,6 +150,7 @@
       }
   };
 
+  exports.Reactive = Reactive;
   exports.createStore = createStore;
   exports.default = VueStore;
 

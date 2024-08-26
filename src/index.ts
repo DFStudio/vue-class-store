@@ -92,6 +92,10 @@ export function createStore<T extends object>(model: T): T {
   return addReactivity(model, Object.entries(getAllDescriptors(model)))
 }
 
+export const Reactive = function Reactive(this: object): object {
+  return reactive(this)
+} as unknown as (new() => object)
+
 type VueStoreMetadata = {}
 const vueStoreMetadata = Symbol("@@vueStoreMetadata")
 
