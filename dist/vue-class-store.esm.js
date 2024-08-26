@@ -1,6 +1,6 @@
 /**
  * Bundle of: vue-class-store
- * Generated: 2024-08-21
+ * Generated: 2024-08-26
  * Version: 3.0.0
  */
 
@@ -10,30 +10,30 @@ function getAllDescriptors(model) {
     if (model === null || model === Object.prototype) {
         return {};
     }
-    var descriptors = Object.getOwnPropertyDescriptors(model);
-    var parentDescriptors = getAllDescriptors(Object.getPrototypeOf(model));
+    const descriptors = Object.getOwnPropertyDescriptors(model);
+    const parentDescriptors = getAllDescriptors(Object.getPrototypeOf(model));
     return Object.assign(Object.assign({}, parentDescriptors), descriptors);
 }
 function getValue(value, path) {
-    for (var i = 0; i < path.length; i++) {
-        var key = path[i];
+    for (let i = 0; i < path.length; i++) {
+        const key = path[i];
         if (value == null)
-            { value = undefined; }
+            value = undefined;
         else
-            { value = value[key]; }
+            value = value[key];
     }
     return value;
 }
 // 'on.flag:target', 'on.flag1.flag2:target'
 // flags: deep, immediate, pre, post, sync
-var watchPattern = /^on(\.[.a-zA-Z]*)?:(.*)$/;
+let watchPattern = /^on(\.[.a-zA-Z]*)?:(.*)$/;
 function isWatch(key) {
     return watchPattern.test(key);
 }
 function parseWatch(key) {
     var _a;
-    var match = key.match(watchPattern);
-    var flags = (_a = match[1]) !== null && _a !== void 0 ? _a : '';
+    let match = key.match(watchPattern);
+    let flags = (_a = match[1]) !== null && _a !== void 0 ? _a : '';
     return {
         path: match[2].split('.'),
         options: {
@@ -47,18 +47,14 @@ function parseWatch(key) {
     };
 }
 function addComputed(instance, descriptors) {
-    descriptors.forEach(function (ref) {
-        var key = ref[0];
-        var desc = ref[1];
-
-        var get = desc.get;
-        var set = desc.set;
+    descriptors.forEach(([key, desc]) => {
+        const { get, set } = desc;
         if (get) {
-            var ref$1 = set
+            let ref = set
                 ? computed({ get: get.bind(instance), set: set.bind(instance) })
                 : computed(get.bind(instance));
             Object.defineProperty(instance, key, {
-                value: ref$1,
+                value: ref,
                 writable: desc.writable,
                 enumerable: desc.enumerable,
                 configurable: true
@@ -71,23 +67,18 @@ function addComputed(instance, descriptors) {
  * model.
  */
 function addWatches(instance, descriptors) {
-    descriptors.forEach(function (ref) {
-        var key = ref[0];
-        var desc = ref[1];
-
+    descriptors.forEach(([key, desc]) => {
         if (isWatch(key)) {
-            var ref$1 = parseWatch(key);
-            var path = ref$1.path;
-            var options = ref$1.options;
-            var callback = typeof desc.value === 'string' ? instance[desc.value] : desc.value;
+            let { path, options } = parseWatch(key);
+            let callback = typeof desc.value === 'string' ? instance[desc.value] : desc.value;
             if (typeof callback === 'function') {
-                watch(function () { return getValue(instance, path); }, callback.bind(instance), options);
+                watch(() => getValue(instance, path), callback.bind(instance), options);
             }
         }
     });
 }
 function addReactivity(instance, descriptors) {
-    var reactiveInstance = reactive(instance);
+    const reactiveInstance = reactive(instance);
     addComputed(reactiveInstance, descriptors);
     addWatches(reactiveInstance, descriptors);
     return reactiveInstance;
@@ -95,7 +86,7 @@ function addReactivity(instance, descriptors) {
 function createStore(model) {
     return addReactivity(model, Object.entries(getAllDescriptors(model)));
 }
-var vueStoreMetadata = Symbol("@@vueStoreMetadata");
+const vueStoreMetadata = Symbol("@@vueStoreMetadata");
 function getStoreMetadata(prototype) {
     var _a;
     return (_a = Object.getOwnPropertyDescriptor(prototype, vueStoreMetadata)) === null || _a === void 0 ? void 0 : _a.value;
@@ -117,24 +108,22 @@ function findStorePrototype(prototype) {
     }
     return null;
 }
-var VueStore = function VueStore(constructor) {
-    var obj;
-
+const VueStore = function VueStore(constructor) {
     if (constructor === undefined) { // called as a bare constructor
         if (!hasStoreFlag(Object.getPrototypeOf(this))) {
-            throw TypeError(("Class " + (this.constructor.name) + " isn't decorated with @VueStore"));
+            throw TypeError(`Class ${this.constructor.name} isn't decorated with @VueStore`);
         }
         return reactive(this);
     }
     else { // called as a decorator
         if (hasStoreFlag(constructor.prototype)) // already a VueStore class
-            { return constructor; }
-        var wrapper = ( obj = {}, obj[constructor.name] = /*@__PURE__*/(function (constructor) {
-            function anonymous() {
-                    var args = [], len = arguments.length;
-                    while ( len-- ) args[ len ] = arguments[ len ];
-
-                    constructor.apply(this, args);
+            return constructor;
+        const wrapper = {
+            // preserve the class name. Useful for instanceof checks.
+            // https://stackoverflow.com/a/9479081 | https://stackoverflow.com/a/48813707
+            [constructor.name]: class extends constructor {
+                constructor(...args) {
+                    super(...args);
                     // introspect this class's prototype
                     if (findStorePrototype(Object.getPrototypeOf(this)) === wrapper.prototype) {
                         // if this is the topmost `extends VueStore(Superclass)` or `@VueStore`, add full reactivity
@@ -147,13 +136,8 @@ var VueStore = function VueStore(constructor) {
                         return reactive(this);
                     }
                 }
-
-            if ( constructor ) anonymous.__proto__ = constructor;
-            anonymous.prototype = Object.create( constructor && constructor.prototype );
-            anonymous.prototype.constructor = anonymous;
-
-            return anonymous;
-        }(constructor)), obj )[constructor.name];
+            }
+        }[constructor.name];
         setStoreMetadata(wrapper.prototype, {});
         return wrapper;
     }

@@ -2,7 +2,6 @@
 // setup
 // ------------------------------------------------------------------------------------------
 
-import buble from '@rollup/plugin-buble'
 import commonjs from '@rollup/plugin-commonjs'
 import resolve from '@rollup/plugin-node-resolve'
 import path from 'path'
@@ -52,10 +51,6 @@ const umd = {
       },
     }),
     commonjs(),
-    buble({
-      // @see https://github.com/vuejs/vue-hackernews-2.0/issues/87
-      objectAssign: 'Object.assign',
-    }),
   ],
 }
 
