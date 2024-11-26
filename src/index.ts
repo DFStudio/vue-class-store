@@ -21,8 +21,9 @@ function getValue(value: Record<any, any> | null | undefined, path: string[]) {
 }
 
 // 'on.flag:target', 'on.flag1.flag2:target'
-// flags: deep, immediate, pre, post, sync
-let watchPattern = /^on(\.[.a-zA-Z]*)?:(.*)$/
+// 'on.deep=1.immediate:target'
+// flags: deep, deep=N, immediate, once, pre, post, sync
+let watchPattern = /^on(\.[.a-zA-Z0-9=]*)?:(.*)$/
 
 function isWatch(key: string): boolean {
   return watchPattern.test(key)
@@ -33,11 +34,16 @@ type WatchDefinition = { path: string[], options: WatchOptions }
 function parseWatch(key: string): WatchDefinition {
   let match = key.match(watchPattern)!
   let flags = match[1] ?? ''
+  let deepMatch = flags.match(/\.deep(?:=(\d+))?/)
   return {
     path: match[2].split('.'),
     options: {
-      deep: flags.includes('.deep'),
+      deep:
+          deepMatch && deepMatch[1] ? parseInt(deepMatch[1]) :
+              deepMatch ? true :
+                  undefined,
       immediate: flags.includes('.immediate'),
+      once: flags.includes('.once'),
       flush:
           flags.includes('.pre') ? 'pre'
               : flags.includes('.post') ? 'post'
