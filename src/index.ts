@@ -71,14 +71,41 @@ function addComputed(instance: object, descriptors: [string, PropertyDescriptor]
   })
 }
 
+const warned = new Set<string>()
+const COMPAT_WARN_MSG = `watches on an array value will no longer trigger on array mutation unless the ".deep" flag is \
+specified. You can specify the intended behavior and suppress this warning by setting an explicit ".deep" flag:
+
+  "on.deep=0:yourArray"(newValue, oldValue) { // Vue 3 semantics, doesn't trigger on mutation
+  "on.deep=1:yourArray"(newValue, oldValue) { // Vue 2 semantics, triggers on mutation
+
+  Details: https://v3-migration.vuejs.org/breaking-changes/watch.html`
+
+function warnCompat(className: string, propertyKey: string) {
+  if (!warned.has(`${className}%${propertyKey}`)) {
+    warned.add(`${className}%${propertyKey}`)
+
+    // Same format as the Vue compat build
+    let message = '[Vue warn]: (deprecation WATCH_ARRAY @ vue-class-store) '
+    if (warned.size == 1) {
+      message += COMPAT_WARN_MSG // only print the full message once
+    } else {
+      message += `(${warned.size})`
+    }
+    message += `\n  at ${className}["${propertyKey}"]`
+
+    console.warn(message)
+  }
+}
+
 // https://github.com/vuejs/core/pull/12236
-function compatWatch(source: () => any, callback: WatchCallback, options: WatchOptions): WatchHandle {
+function compatWatch(className: string, propertyKey: string, source: () => any, callback: WatchCallback, options: WatchOptions): WatchHandle {
   if (options.deep != undefined) {
     return watch(source, callback, options) // if deep is specified, even `deep: 0`, don't activate the compat
   } else {
     return watch(() => {
       const value = source()
       if (Array.isArray(value)) {
+        warnCompat(className, propertyKey)
         value.slice(0, 0) // establish reactive dependency on array iteration order
         return {COMPAT_ARRAY_UNWRAP: value}
       }
@@ -106,7 +133,12 @@ function addWatches(instance: object, descriptors: [string, PropertyDescriptor][
       let {path, options} = parseWatch(key)
       let callback = typeof desc.value === 'string' ? instance[desc.value] : desc.value
       if (typeof callback === 'function') {
-        compatWatch(() => getValue(instance, path), callback.bind(instance), options)
+        compatWatch(
+            instance.constructor?.name ?? 'Unknown', key,
+            () => getValue(instance, path),
+            callback.bind(instance),
+            options
+        )
       }
     }
   })
