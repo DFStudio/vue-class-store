@@ -1,4 +1,4 @@
-import {computed, reactive, watch, WatchOptions} from 'vue'
+import {computed, reactive, watch, WatchCallback, WatchHandle, WatchOptions} from 'vue'
 
 function getAllDescriptors(model: object | null): Record<string, PropertyDescriptor> {
   if (model === null || model === Object.prototype) {
@@ -71,6 +71,31 @@ function addComputed(instance: object, descriptors: [string, PropertyDescriptor]
   })
 }
 
+// https://github.com/vuejs/core/pull/12236
+function compatWatch(source: () => any, callback: WatchCallback, options: WatchOptions): WatchHandle {
+  if (options.deep != undefined) {
+    return watch(source, callback, options) // if deep is specified, even `deep: 0`, don't activate the compat
+  } else {
+    return watch(() => {
+      const value = source()
+      if (Array.isArray(value)) {
+        value.slice(0, 0) // establish reactive dependency on array iteration order
+        return {COMPAT_ARRAY_UNWRAP: value}
+      }
+      return value
+    }, (newValue, oldValue, onCleanup) => {
+      if (newValue && newValue.COMPAT_ARRAY_UNWRAP) {
+        newValue = newValue.COMPAT_ARRAY_UNWRAP
+      }
+      if (oldValue && oldValue.COMPAT_ARRAY_UNWRAP) {
+        oldValue = oldValue.COMPAT_ARRAY_UNWRAP
+      }
+
+      return callback(newValue, oldValue, onCleanup)
+    }, options)
+  }
+}
+
 /**
  * Scans the model for `on:*` watchers and then creates watches for them. This method expects to be passed a reactive
  * model.
@@ -81,7 +106,7 @@ function addWatches(instance: object, descriptors: [string, PropertyDescriptor][
       let {path, options} = parseWatch(key)
       let callback = typeof desc.value === 'string' ? instance[desc.value] : desc.value
       if (typeof callback === 'function') {
-        watch(() => getValue(instance, path), callback.bind(instance), options)
+        compatWatch(() => getValue(instance, path), callback.bind(instance), options)
       }
     }
   })

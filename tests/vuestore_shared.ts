@@ -365,5 +365,129 @@ export function testWatches(
         expect(watchSpy).to.be.called.with(undefined, 10)
       });
     });
+
+    describe("Vue 2 compat", () => {
+      it("watching an array should trigger on replacement", async () => {
+        const watchSpy = spy()
+
+        @decorator
+        class Store extends superclass {
+          value = [10]
+
+          'on:value'(...args) {
+            watchSpy(...args)
+          }
+        }
+
+        let store = wrapperFn(new Store())
+        const value1 = store.value
+        const value2 = [10]
+
+        store.value = value2
+        await nextTick()
+
+        expect(watchSpy).to.be.called.with(value2, value1)
+      });
+
+      it("watching an array should trigger on mutation", async () => {
+        const watchSpy = spy()
+
+        @decorator
+        class Store extends superclass {
+          value = [10]
+
+          'on:value'(...args) {
+            watchSpy(...args)
+          }
+        }
+
+        let store = wrapperFn(new Store())
+
+        store.value.push(11)
+        await nextTick()
+
+        expect(watchSpy).to.be.called.with(store.value, store.value)
+      });
+
+      it("initial value shouldn't need to be an array", async () => {
+        const watchSpy = spy()
+
+        @decorator
+        class Store extends superclass {
+          value: any = null
+
+          'on:value'(...args) {
+            watchSpy(...args)
+          }
+        }
+
+        let store = wrapperFn(new Store())
+
+        store.value = [10]
+        await nextTick()
+
+        expect(watchSpy).to.be.called.with(store.value, null)
+        watchSpy.reset()
+
+        store.value.push(11)
+        await nextTick()
+
+        expect(watchSpy).to.be.called.with(store.value, store.value)
+      });
+
+      it("if later values aren't arrays, those shouldn't trigger on mutation", async () => {
+        const watchSpy = spy()
+
+        @decorator
+        class Store extends superclass {
+          value: any = [10]
+
+          'on:value'(...args) {
+            watchSpy(...args)
+          }
+        }
+
+        let store = wrapperFn(new Store())
+        let value1 = store.value
+        let value2 = {num: 10}
+
+        store.value.push(11)
+        await nextTick()
+
+        expect(watchSpy).to.be.called.with(value1, value1)
+        watchSpy.reset()
+
+        store.value = value2
+        await nextTick()
+
+        expect(watchSpy).to.be.called.with(value2, value1)
+        watchSpy.reset()
+
+        store.value.num++
+        await nextTick()
+
+        expect(watchSpy).not.to.be.called()
+      });
+
+      it("setting .deep=0 should disable array compat", async () => {
+        const watchSpy = spy()
+
+        @decorator
+        class Store extends superclass {
+          value = [10]
+
+          'on.deep=0:value'(...args) {
+            watchSpy(...args)
+          }
+        }
+
+        let store = wrapperFn(new Store())
+
+        store.value.push(11)
+        await nextTick()
+
+        expect(watchSpy).not.to.be.called()
+      });
+    });
   });
 }
