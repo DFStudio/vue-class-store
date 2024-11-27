@@ -538,7 +538,7 @@ describe("@VueStore + extends VueStore", () => {
       expect(() => new ChildStore()).to.throw("Class ChildStore isn't decorated with @VueStore")
     });
 
-    it("the constructor should succeed when a non-decorated class extends a decorated class", () => {
+    it("the constructor should fail when a non-decorated class extends a decorated class", () => {
       @VueStore
       class ParentStore {
       }
@@ -546,7 +546,7 @@ describe("@VueStore + extends VueStore", () => {
       class ChildStore extends ParentStore {
       }
 
-      expect(() => new ChildStore()).not.to.throw()
+      expect(() => new ChildStore()).to.throw("Class ChildStore isn't decorated with @VueStore")
     });
 
     it("the constructor should succeed when a decorated class extends a class which extends VueStore", () => {
