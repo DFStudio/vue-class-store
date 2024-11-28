@@ -17,7 +17,7 @@
   "scripts": {
     "dev": "rollup -c build/rollup.js -w",
     "build": "rollup -c build/rollup.js",
-    "test": "ts-mocha -p tests/tsconfig.json tests/**/*.spec.ts"
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --expose-gc\" ts-mocha -p tests/tsconfig.json tests/**/*.spec.ts"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

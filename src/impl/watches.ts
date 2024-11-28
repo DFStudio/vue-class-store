@@ -1,7 +1,7 @@
-import {watch, WatchCallback, WatchHandle, WatchOptions} from 'vue'
+import {EffectScope, effectScope, markRaw, watch, WatchCallback, WatchHandle, WatchOptions} from 'vue'
 
 function getValue(value: Record<any, any> | null | undefined, path: string[]) {
-  for (let i = 0; i < path.length; i++){
+  for (let i = 0; i < path.length; i++) {
     const key = path[i];
     if (value == null)
       value = undefined
@@ -101,18 +101,36 @@ function compatWatch(className: string, propertyKey: string, source: () => any, 
  * model.
  */
 export function createWatches(instance: object, descriptors: [string, PropertyDescriptor][]) {
-  descriptors.forEach(([key, desc]) => {
-    if (isWatch(key)) {
-      let {path, options} = parseWatch(key)
-      let callback = typeof desc.value === 'string' ? instance[desc.value] : desc.value
-      if (typeof callback === 'function') {
-        compatWatch(
-            instance.constructor?.name ?? 'Unknown', key,
-            () => getValue(instance, path),
-            callback.bind(instance),
-            options
-        )
+  getOrAddWatchScope(instance).run(() => {
+    descriptors.forEach(([key, desc]) => {
+      if (isWatch(key)) {
+        let {path, options} = parseWatch(key)
+        let callback = typeof desc.value === 'string' ? instance[desc.value] : desc.value
+        if (typeof callback === 'function') {
+          compatWatch(
+              instance.constructor?.name ?? 'Unknown', key,
+              () => getValue(instance, path),
+              callback.bind(instance),
+              options
+          )
+        }
       }
-    }
+    })
   })
+}
+
+/**
+ * Used to clean up computed and watches when destroying a store: https://stackoverflow.com/a/74515382
+ */
+const vueStoreWatchScope = Symbol("vue-class-store__watchScope")
+
+function getOrAddWatchScope(instance: object): EffectScope {
+  return instance[vueStoreWatchScope] ??= markRaw(effectScope(true))
+}
+
+export function destroyWatches(instance: object) {
+  if (instance && instance[vueStoreWatchScope]) {
+    (instance[vueStoreWatchScope] as EffectScope).stop()
+    delete instance[vueStoreWatchScope]
+  }
 }

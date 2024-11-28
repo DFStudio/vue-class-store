@@ -1,7 +1,7 @@
 import {reactive} from 'vue'
 import {getAllDescriptors} from "./impl/util";
 import {addComputed} from "./impl/computed";
-import {createWatches} from "./impl/watches";
+import {createWatches, destroyWatches} from "./impl/watches";
 
 /**
  * Create a store from the given object. The returned value will be a wrapper around the passed model
@@ -12,6 +12,14 @@ export function createStore<T extends object>(model: T): T {
   addComputed(reactiveInstance, descriptors)
   createWatches(reactiveInstance, descriptors)
   return reactiveInstance as T
+}
+
+/**
+ * Destroy the given store, destroying its computed properties and watches, allowing it to be garbage collected.
+ */
+export function destroyStore(instance: object) {
+  // computed properties don't need to be cleaned up
+  destroyWatches(instance)
 }
 
 /**
@@ -30,6 +38,7 @@ export class Reactive {
 
 interface VueStore {
   new(): object
+
   <T extends abstract new(...args: any[]) => any>(constructor: T): T
 }
 
@@ -38,6 +47,9 @@ interface VueStore {
  * `on:some.watch` functions.
  *
  * All classes extending `VueStore` *must* be decorated with `@VueStore`. This includes all subclasses.
+ *
+ * Before discarding a `VueStore` instance that directly or indirectly watches any long-lived reactive state, pass the
+ * instance to {@link destroyStore}.
  */
 const VueStore: VueStore = function VueStore(this: object, constructor?: { new(...args: any[]): {} }): any {
   if (constructor === undefined) { // called as a bare constructor
@@ -74,15 +86,15 @@ const VueStore: VueStore = function VueStore(this: object, constructor?: { new(.
         }
       }
     }[constructor.name]
-    wrapperClass.prototype[vueStoreDecoratorTag] = true
+    wrapperClass.prototype[vueStoreDecorated] = true
     return wrapperClass
   }
 } as VueStore
 
 export default VueStore
 
-const vueStoreDecoratorTag = Symbol("@@vueStoreDecoratorTag")
+const vueStoreDecorated = Symbol("vue-class-store__decorated")
 
 function isDecorated(prototype: object) {
-  return Object.hasOwn(prototype, vueStoreDecoratorTag)
+  return Object.hasOwn(prototype, vueStoreDecorated)
 }
