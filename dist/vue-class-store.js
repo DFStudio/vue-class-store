@@ -1,6 +1,6 @@
 /**
  * Bundle of: vue-class-store
- * Generated: 2024-11-25
+ * Generated: 2024-12-02
  * Version: 3.0.0
  */
 
@@ -18,6 +18,24 @@
       const parentDescriptors = getAllDescriptors(Object.getPrototypeOf(model));
       return Object.assign(Object.assign({}, parentDescriptors), descriptors);
   }
+
+  function addComputed(instance, descriptors) {
+      descriptors.forEach(([key, desc]) => {
+          const { get, set } = desc;
+          if (get) {
+              let ref = set
+                  ? vue.computed({ get: get.bind(instance), set: set.bind(instance) })
+                  : vue.computed(get.bind(instance));
+              Object.defineProperty(instance, key, {
+                  value: ref,
+                  writable: desc.writable,
+                  enumerable: desc.enumerable,
+                  configurable: true
+              });
+          }
+      });
+  }
+
   function getValue(value, path) {
       for (let i = 0; i < path.length; i++) {
           const key = path[i];
@@ -54,22 +72,6 @@
                           : undefined
           }
       };
-  }
-  function addComputed(instance, descriptors) {
-      descriptors.forEach(([key, desc]) => {
-          const { get, set } = desc;
-          if (get) {
-              let ref = set
-                  ? vue.computed({ get: get.bind(instance), set: set.bind(instance) })
-                  : vue.computed(get.bind(instance));
-              Object.defineProperty(instance, key, {
-                  value: ref,
-                  writable: desc.writable,
-                  enumerable: desc.enumerable,
-                  configurable: true
-              });
-          }
-      });
   }
   const warned = new Set();
   const COMPAT_WARN_MSG = `watches on an array value will no longer trigger on array mutation unless the ".deep" flag is \
@@ -123,90 +125,119 @@ specified. You can specify the intended behavior and suppress this warning by se
    * Scans the model for `on:*` watchers and then creates watches for them. This method expects to be passed a reactive
    * model.
    */
-  function addWatches(instance, descriptors) {
-      descriptors.forEach(([key, desc]) => {
-          var _a, _b;
-          if (isWatch(key)) {
-              let { path, options } = parseWatch(key);
-              let callback = typeof desc.value === 'string' ? instance[desc.value] : desc.value;
-              if (typeof callback === 'function') {
-                  compatWatch((_b = (_a = instance.constructor) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'Unknown', key, () => getValue(instance, path), callback.bind(instance), options);
+  function createWatches(instance, descriptors) {
+      getOrAddWatchScope(instance).run(() => {
+          descriptors.forEach(([key, desc]) => {
+              var _a, _b;
+              if (isWatch(key)) {
+                  let { path, options } = parseWatch(key);
+                  let callback = typeof desc.value === 'string' ? instance[desc.value] : desc.value;
+                  if (typeof callback === 'function') {
+                      compatWatch((_b = (_a = instance.constructor) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'Unknown', key, () => getValue(instance, path), callback.bind(instance), options);
+                  }
               }
-          }
+          });
       });
   }
-  function addReactivity(instance, descriptors) {
-      const reactiveInstance = vue.reactive(instance);
+  /**
+   * Used to clean up computed and watches when destroying a store: https://stackoverflow.com/a/74515382
+   */
+  const vueStoreWatchScope = Symbol("vue-class-store__watchScope");
+  function getOrAddWatchScope(instance) {
+      var _a;
+      return (_a = instance[vueStoreWatchScope]) !== null && _a !== void 0 ? _a : (instance[vueStoreWatchScope] = vue.markRaw(vue.effectScope(true)));
+  }
+  function destroyWatches(instance) {
+      if (instance && instance[vueStoreWatchScope]) {
+          instance[vueStoreWatchScope].stop();
+          delete instance[vueStoreWatchScope];
+      }
+  }
+
+  /**
+   * Create a store from the given object. The returned value will be a wrapper around the passed model
+   */
+  function createStore(model) {
+      const descriptors = Object.entries(getAllDescriptors(model));
+      const reactiveInstance = vue.reactive(model);
       addComputed(reactiveInstance, descriptors);
-      addWatches(reactiveInstance, descriptors);
+      createWatches(reactiveInstance, descriptors);
       return reactiveInstance;
   }
-  function createStore(model) {
-      return addReactivity(model, Object.entries(getAllDescriptors(model)));
+  /**
+   * Destroy the given store, destroying its computed properties and watches, allowing it to be garbage collected.
+   */
+  function destroyStore(instance) {
+      // computed properties don't need to be cleaned up
+      destroyWatches(instance);
   }
-  const Reactive = function Reactive() {
-      return vue.reactive(this);
-  };
-  const vueStoreMetadata = Symbol("@@vueStoreMetadata");
-  function getStoreMetadata(prototype) {
-      var _a;
-      return (_a = Object.getOwnPropertyDescriptor(prototype, vueStoreMetadata)) === null || _a === void 0 ? void 0 : _a.value;
-  }
-  function setStoreMetadata(prototype, metadata) {
-      return prototype[vueStoreMetadata] = metadata;
-  }
-  function hasStoreFlag(prototype) {
-      return getStoreMetadata(prototype) != undefined;
-  }
-  function findStorePrototype(prototype) {
-      while (prototype !== null && prototype !== Object.prototype) {
-          if (hasStoreFlag(prototype)) {
-              return prototype;
-          }
-          else {
-              prototype = Object.getPrototypeOf(prototype);
-          }
+  /**
+   * Extend this class to have your class be reactive. Computed properties will be cached, but `on:foo` watch functions
+   * aren't supported. If you need watches, use {@link VueStore}
+   */
+  class Reactive {
+      constructor() {
+          const descriptors = Object.entries(getAllDescriptors(Object.getPrototypeOf(this)));
+          const reactiveThis = vue.reactive(this);
+          // watches require late initialization to work properly, so we only do computed properties
+          addComputed(reactiveThis, descriptors);
+          return reactiveThis;
       }
-      return null;
   }
+  /**
+   * Create a fully-featured Vue store. Computed properties will be cached and watches can be added by defining
+   * `on:some.watch` functions.
+   *
+   * All classes extending `VueStore` *must* be decorated with `@VueStore`. This includes all subclasses.
+   *
+   * Before discarding a `VueStore` instance that directly or indirectly watches any long-lived reactive state, pass the
+   * instance to {@link destroyStore}.
+   */
   const VueStore = function VueStore(constructor) {
       if (constructor === undefined) { // called as a bare constructor
-          if (!hasStoreFlag(Object.getPrototypeOf(this))) {
+          if (!isDecorated(Object.getPrototypeOf(this))) {
               throw TypeError(`Class ${this.constructor.name} isn't decorated with @VueStore`);
           }
           return vue.reactive(this);
       }
       else { // called as a decorator
-          if (hasStoreFlag(constructor.prototype)) // already a VueStore class
+          if (isDecorated(constructor.prototype)) // already a VueStore class
               return constructor;
-          const wrapper = {
+          const descriptors = Object.entries(getAllDescriptors(constructor.prototype));
+          const wrapperClass = {
               // preserve the class name. Useful for instanceof checks.
               // https://stackoverflow.com/a/9479081 | https://stackoverflow.com/a/48813707
               [constructor.name]: class extends constructor {
                   constructor(...args) {
                       super(...args);
-                      // introspect this class's prototype
-                      if (findStorePrototype(Object.getPrototypeOf(this)) === wrapper.prototype) {
-                          // if this is the topmost `extends VueStore(Superclass)` or `@VueStore`, add full reactivity
-                          // at this point, `this` won't include dynamic keys from subclasses
-                          return addReactivity(this, Object.entries(getAllDescriptors(Object.getPrototypeOf(this))));
+                      // when instantiating a store, the *topmost* class must be decorated in order for computed properties and
+                      // watches to be correctly initialized
+                      if (!isDecorated(Object.getPrototypeOf(this))) {
+                          throw TypeError(`Class ${this.constructor.name} isn't decorated with @VueStore`);
                       }
-                      else {
-                          // otherwise, make it a reactive instance, but don't apply any watches or computed properties
-                          // the topmost VueStore decorator is responsible
-                          return vue.reactive(this);
+                      const reactiveThis = vue.reactive(this);
+                      // only the topmost class should handle adding computed/watches
+                      if (wrapperClass.prototype === Object.getPrototypeOf(this)) {
+                          addComputed(reactiveThis, descriptors);
+                          createWatches(reactiveThis, descriptors);
                       }
+                      return reactiveThis;
                   }
               }
           }[constructor.name];
-          setStoreMetadata(wrapper.prototype, {});
-          return wrapper;
+          wrapperClass.prototype[vueStoreDecorated] = true;
+          return wrapperClass;
       }
   };
+  const vueStoreDecorated = Symbol("vue-class-store__decorated");
+  function isDecorated(prototype) {
+      return Object.hasOwn(prototype, vueStoreDecorated);
+  }
 
   exports.Reactive = Reactive;
   exports.createStore = createStore;
   exports.default = VueStore;
+  exports.destroyStore = destroyStore;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
