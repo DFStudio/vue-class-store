@@ -66,6 +66,21 @@ describe("createStore", () => {
     expect(spies.late).to.be.called.with(400, 40)
   });
 
+  it("computed properties should work after Object.freeze", async () => {
+    class Store {
+      plain = 10
+
+      get computed() {
+        return this.plain + 1
+      }
+    }
+
+    let store = createStore(new Store())
+    expect(store.computed).to.equal(11)
+    Object.freeze(store)
+    expect(() => store.computed).not.to.throw()
+  });
+
   testWatches(c => c, Object, createStore)
 
   it("watches should be created for indirect (string) references", async () => {

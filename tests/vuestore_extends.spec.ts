@@ -40,6 +40,22 @@ describe("@VueStore + extends VueStore", () => {
     expect(spies.late).to.be.called.with(400, 40)
   });
 
+  it("computed properties should work after Object.freeze", async () => {
+    @VueStore
+    class Store extends VueStore {
+      plain = 10
+
+      get computed() {
+        return this.plain + 1
+      }
+    }
+
+    let store = new Store()
+    expect(store.computed).to.equal(11)
+    Object.freeze(store)
+    expect(() => store.computed).not.to.throw()
+  });
+
   testWatches(VueStore, VueStore, v => v)
 
   it("methods should be accessible and reactive", async () => {
