@@ -1,6 +1,6 @@
 /**
  * Bundle of: vue-class-store
- * Generated: 2024-12-02
+ * Generated: 2024-12-05
  * Version: 3.0.0
  */
 
@@ -19,15 +19,26 @@ function addComputed(instance, descriptors) {
     descriptors.forEach(([key, desc]) => {
         const { get, set } = desc;
         if (get) {
-            let ref = set
-                ? computed({ get: get.bind(instance), set: set.bind(instance) })
-                : computed(get.bind(instance));
-            Object.defineProperty(instance, key, {
-                value: ref,
-                writable: desc.writable,
-                enumerable: desc.enumerable,
-                configurable: true
-            });
+            // We *could* just set `value: ref` in the descriptor and Vue will automatically unwrap the ref, however that
+            // causes errors if the object is passed through `Object.freeze()`, since the underlying value is a ref, but the
+            // proxy returns a different value: https://github.com/vuejs/core/issues/3024
+            if (set) {
+                const ref = computed({ get: get.bind(instance), set: set.bind(instance) });
+                Object.defineProperty(instance, key, {
+                    get: () => ref.value,
+                    set: (v) => ref.value = v,
+                    enumerable: desc.enumerable,
+                    configurable: true
+                });
+            }
+            else {
+                const ref = computed(get.bind(instance));
+                Object.defineProperty(instance, key, {
+                    get: () => ref.value,
+                    enumerable: desc.enumerable,
+                    configurable: true
+                });
+            }
         }
     });
 }
@@ -167,10 +178,19 @@ function destroyStore(instance) {
     // computed properties don't need to be cleaned up
     destroyWatches(instance);
 }
+//
+// interface Reactive {
+//   new(): object
+//
+//   <T extends abstract new(...args: any[]) => any>(constructor: T): T
+// }
 /**
  * Extend this class to have your class be reactive. Computed properties will be cached, but `on:foo` watch functions
  * aren't supported. If you need watches, use {@link VueStore}
  */
+// const VueStore: VueStore = function VueStore(this: object, constructor?: { new(...args: any[]): {} }): any {
+//   if (constructor === undefined) { // called as a bare constructor
+//
 class Reactive {
     constructor() {
         const descriptors = Object.entries(getAllDescriptors(Object.getPrototypeOf(this)));
