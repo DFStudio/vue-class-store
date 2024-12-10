@@ -3,59 +3,11 @@ import VueStore from '../src';
 import Vue, {computed, nextTick, reactive, watch} from "vue";
 import {spy, SpySet} from "./test_utils";
 import {testWatches} from "./shared_watches";
+import {testProperties} from "./shared_properties";
+import {testPrivateMembers} from "./shared_private_members";
 
 describe("@VueStore + extends VueStore", () => {
-  it("properties should be reactive", async () => {
-    @VueStore
-    class Store extends VueStore {
-      plain = 10
-      declared: number
-
-      constructor() {
-        super()
-        this.declared = 20
-        this['notDeclared'] = 30
-      }
-    }
-
-    let store = new Store()
-    store['late'] = 40
-
-    const spies = new SpySet()
-    watch(() => store.plain, spies.plain)
-    watch(() => store.declared, spies.declared)
-    watch(() => store['notDeclared'], spies.notDeclared)
-    watch(() => store['late'], spies.late)
-
-    store.plain = 100
-    store.declared = 200
-    store['notDeclared'] = 300
-    store['late'] = 400
-
-    await nextTick()
-
-    expect(spies.plain).to.be.called.with(100, 10)
-    expect(spies.declared).to.be.called.with(200, 20)
-    expect(spies.notDeclared).to.be.called.with(300, 30)
-    expect(spies.late).to.be.called.with(400, 40)
-  });
-
-  it("computed properties should work after Object.freeze", async () => {
-    @VueStore
-    class Store extends VueStore {
-      plain = 10
-
-      get computed() {
-        return this.plain + 1
-      }
-    }
-
-    let store = new Store()
-    expect(store.computed).to.equal(11)
-    Object.freeze(store)
-    expect(() => store.computed).not.to.throw()
-  });
-
+  testProperties(VueStore, VueStore, v => v)
   testWatches(VueStore, VueStore, v => v)
 
   it("methods should be accessible and reactive", async () => {
@@ -151,258 +103,81 @@ describe("@VueStore + extends VueStore", () => {
     expect(Store.prop).to.equal(20)
   });
 
+  testPrivateMembers(VueStore, VueStore, v => v)
+
   describe("private members", () => {
+    it("watches should have access to private fields", () => {
+      let external = -1
 
-    describe("private fields", () => {
-      it("methods should have access to private fields", () => {
-        let external = -1
+      @VueStore
+      class Store extends VueStore {
+        #value = -1
+        prop = 10
 
-        @VueStore
-        class Store extends VueStore {
-          #value = 10
-
-          bumpValue() {
-            this.#value++
-            external = this.#value
-          }
+        'on.sync:prop'() {
+          this.#value = this.prop
+          external = this.#value
         }
+      }
 
-        let store = new Store()
+      let store = new Store()
 
-        expect(() => store.bumpValue()).not.to.throw()
-        expect(external).to.equal(11)
-      });
-
-      it("getters and setters should have access to private fields", () => {
-        @VueStore
-        class Store extends VueStore {
-          #value = 10
-          updateComputed = 1
-
-          get privateValue() {
-            const x = this.updateComputed
-            return this.#value
-          }
-
-          set privateValue(value) {
-            this.#value = value
-          }
-        }
-
-        let store = new Store()
-
-        expect(() => store.privateValue).not.to.throw()
-        expect(store.privateValue).to.equal(10)
-        expect(() => store.privateValue = 20).not.to.throw()
-
-        expect(store.privateValue).to.equal(10)
-        store.updateComputed++ // private fields aren't reactive
-        expect(store.privateValue).to.equal(20)
-      });
-
-      it("watches should have access to private fields", () => {
-        let external = -1
-
-        @VueStore
-        class Store extends VueStore {
-          #value = -1
-          prop = 10
-
-          'on.sync:prop'() {
-            this.#value = this.prop
-            external = this.#value
-          }
-        }
-
-        let store = new Store()
-
-        expect(() => store.prop = 20).not.to.throw(TypeError)
-        expect(external).to.equal(20)
-      });
+      expect(() => store.prop = 20).not.to.throw(TypeError)
+      expect(external).to.equal(20)
     });
 
-    describe("private methods", () => {
-      it("methods should have access to private methods", () => {
-        const callSpy = spy()
+    it("watches should have access to private methods", () => {
+      const callSpy = spy()
 
-        @VueStore
-        class Store extends VueStore {
-          v = 10
+      @VueStore
+      class Store extends VueStore {
+        prop = 10
 
-          #value(...args) {
-            callSpy(...args)
-            return this.v * 2
-          }
-
-          getValue() {
-            return this.#value()
-          }
+        #value() {
+          callSpy(this.prop)
         }
 
-        let store = new Store()
-
-        expect(() => store.getValue()).not.to.throw()
-        expect(store.getValue()).to.equal(20)
-        expect(callSpy).to.be.called()
-      });
-
-      it("getters and setters should have access to private methods", () => {
-        const callSpy = spy()
-
-        @VueStore
-        class Store extends VueStore {
-          v = 10
-
-          #value(...args) {
-            callSpy(...args)
-            return this.v * 2
-          }
-
-          get privateValue() {
-            return this.#value()
-          }
-
-          set privateValue(value) {
-            this.#value(value)
-          }
+        'on.sync:prop'() {
+          this.#value()
         }
+      }
 
-        let store = new Store()
+      let store = new Store()
 
-        expect(() => store.privateValue).not.to.throw()
-        expect(callSpy).to.be.called()
-        expect(store.privateValue).to.equal(20)
-        callSpy.reset()
-        expect(() => store.privateValue = 40).not.to.throw()
-        expect(callSpy).to.be.called.with(40)
-      });
-
-      it("watches should have access to private methods", () => {
-        const callSpy = spy()
-
-        @VueStore
-        class Store extends VueStore {
-          prop = 10
-
-          #value() {
-            callSpy(this.prop)
-          }
-
-          'on.sync:prop'() {
-            this.#value()
-          }
-        }
-
-        let store = new Store()
-
-        expect(() => store.prop = 20).not.to.throw(TypeError)
-        expect(callSpy).to.be.called.with(20)
-      });
-
+      expect(() => store.prop = 20).not.to.throw(TypeError)
+      expect(callSpy).to.be.called.with(20)
     });
 
-    describe("private properties", () => {
-      it("methods should have access to private properties", () => {
-        const getSpy = spy()
-        const setSpy = spy()
+    it("watches should have access to private properties", () => {
+      const getSpy = spy()
+      const setSpy = spy()
 
-        @VueStore
-        class Store extends VueStore {
-          v = 10
+      @VueStore
+      class Store extends VueStore {
+        v = 10
 
-          get #value() {
-            getSpy(this.v)
-            return this.v
-          }
-
-          set #value(value) {
-            setSpy(this.v, value)
-            this.v = value
-          }
-
-          getValue() {
-            return this.#value
-          }
-
-          setValue(value) {
-            this.#value = value
-          }
+        get #value() {
+          getSpy(this.v)
+          return this.v
         }
 
-        let store = new Store()
-
-        expect(() => store.getValue()).not.to.throw()
-        expect(getSpy).to.be.called.with(10)
-        expect(() => store.setValue(20)).not.to.throw()
-        expect(setSpy).to.be.called.with(10, 20)
-      });
-
-      it("getters and setters should have access to private properties", () => {
-        const getSpy = spy()
-        const setSpy = spy()
-
-        @VueStore
-        class Store extends VueStore {
-          v = 10
-
-          get #value() {
-            getSpy(this.v)
-            return this.v
-          }
-
-          set #value(value) {
-            setSpy(this.v, value)
-            this.v = value
-          }
-
-          get privateValue() {
-            return this.#value
-          }
-
-          set privateValue(value) {
-            this.#value = value
-          }
+        set #value(value) {
+          setSpy(this.v, value)
+          this.v = value
         }
 
-        let store = new Store()
+        prop = 0
 
-        expect(() => store.privateValue).not.to.throw()
-        expect(getSpy).to.be.called.with(10)
-        expect(() => store.privateValue = 20).not.to.throw()
-        expect(setSpy).to.be.called.with(10, 20)
-      });
-
-      it("watches should have access to private properties", () => {
-        const getSpy = spy()
-        const setSpy = spy()
-
-        @VueStore
-        class Store extends VueStore {
-          v = 10
-
-          get #value() {
-            getSpy(this.v)
-            return this.v
-          }
-
-          set #value(value) {
-            setSpy(this.v, value)
-            this.v = value
-          }
-
-          prop = 0
-
-          'on.sync:prop'() {
-            this.#value = this.#value + this.prop
-          }
+        'on.sync:prop'() {
+          this.#value = this.#value + this.prop
         }
+      }
 
-        let store = new Store()
+      let store = new Store()
 
-        expect(() => store.prop = 20).not.to.throw(TypeError)
-        expect(getSpy).to.be.called.with(10)
-        expect(setSpy).to.be.called.with(10, 30)
-      });
+      expect(() => store.prop = 20).not.to.throw(TypeError)
+      expect(getSpy).to.be.called.with(10)
+      expect(setSpy).to.be.called.with(10, 30)
     });
   });
 

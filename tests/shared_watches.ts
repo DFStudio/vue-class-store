@@ -2,6 +2,9 @@ import {assert, expect} from 'chai';
 import {nextTick, reactive} from "vue";
 import {spy} from "./test_utils";
 
+/**
+ * Shared between `createStore` and `@VueStore`
+ */
 export function testWatches(
     decorator: <T extends abstract new(...args: any[]) => any>(constructor: T) => T,
     superclass: { new(): object },

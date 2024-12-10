@@ -3,6 +3,7 @@ import {createStore} from '../src';
 import Vue, {computed, nextTick, reactive, watch} from "vue";
 import {spy, SpySet} from "./test_utils";
 import {testWatches} from "./shared_watches";
+import {testProperties} from "./shared_properties";
 
 type C = { new(...args: any[]): {} }
 
@@ -33,54 +34,7 @@ describe("createStore", () => {
     expect(store.plain).to.equal(-10)
   });
 
-  it("properties should be reactive", async () => {
-    class Store {
-      plain = 10
-      declared: number
-
-      constructor() {
-        this.declared = 20
-        this['notDeclared'] = 30
-      }
-    }
-
-    let store = createStore(new Store())
-    store['late'] = 40
-
-    const spies = new SpySet()
-    watch(() => store.plain, spies.plain)
-    watch(() => store.declared, spies.declared)
-    watch(() => store['notDeclared'], spies.notDeclared)
-    watch(() => store['late'], spies.late)
-
-    store.plain = 100
-    store.declared = 200
-    store['notDeclared'] = 300
-    store['late'] = 400
-
-    await nextTick()
-
-    expect(spies.plain).to.be.called.with(100, 10)
-    expect(spies.declared).to.be.called.with(200, 20)
-    expect(spies.notDeclared).to.be.called.with(300, 30)
-    expect(spies.late).to.be.called.with(400, 40)
-  });
-
-  it("computed properties should work after Object.freeze", async () => {
-    class Store {
-      plain = 10
-
-      get computed() {
-        return this.plain + 1
-      }
-    }
-
-    let store = createStore(new Store())
-    expect(store.computed).to.equal(11)
-    Object.freeze(store)
-    expect(() => store.computed).not.to.throw()
-  });
-
+  testProperties(c => c, Object, createStore)
   testWatches(c => c, Object, createStore)
 
   it("watches should be created for indirect (string) references", async () => {

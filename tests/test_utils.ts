@@ -1,5 +1,6 @@
 import chai from 'chai';
 import {default as spiesPlugin} from 'chai-spies';
+import {watch, WatchSource} from "vue";
 
 chai.use(spiesPlugin)
 
@@ -40,6 +41,16 @@ export class SpySet implements Record<string | number, ResettableSpy> {
   [key: string]: ResettableSpy;
 
   [key: number]: ResettableSpy;
+}
+
+/**
+ * Creates a spy and sets up a synchronous watcher on the given source. Whenever the source changes the spy will be
+ * synchronously triggered
+ */
+export function watchSpy(src: WatchSource) {
+  const reactionSpy = spy()
+  watch(src, reactionSpy, {flush: 'sync'})
+  return reactionSpy
 }
 
 /**
