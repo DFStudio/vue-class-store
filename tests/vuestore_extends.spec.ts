@@ -2,7 +2,7 @@ import {assert, expect} from 'chai';
 import VueStore from '../src';
 import Vue, {computed, nextTick, reactive, watch} from "vue";
 import {spy, SpySet} from "./test_utils";
-import {testWatches} from "./vuestore_shared";
+import {testWatches} from "./shared_watches";
 
 describe("@VueStore + extends VueStore", () => {
   it("properties should be reactive", async () => {

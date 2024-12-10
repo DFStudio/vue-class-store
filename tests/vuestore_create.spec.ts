@@ -2,7 +2,7 @@ import {assert, expect} from 'chai';
 import {createStore} from '../src';
 import Vue, {computed, nextTick, reactive, watch} from "vue";
 import {spy, SpySet} from "./test_utils";
-import {testWatches} from "./vuestore_shared";
+import {testWatches} from "./shared_watches";
 
 type C = { new(...args: any[]): {} }
 

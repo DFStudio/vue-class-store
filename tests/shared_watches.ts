@@ -7,7 +7,7 @@ export function testWatches(
     superclass: { new(): object },
     wrapperFn: <T extends object>(value: T) => T,
 ) {
-  describe("watches", () => {
+  describe("shared > watches", () => {
     it("plain watch", async () => {
       const watchSpy = spy()
 

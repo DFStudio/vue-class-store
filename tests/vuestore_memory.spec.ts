@@ -2,7 +2,6 @@ import {assert, expect} from 'chai';
 import VueStore, {destroyStore, Reactive} from '../src';
 import {testGC} from "./test_utils";
 
-// disabled as this depends on GC behavior and thus is unreliable
 describe('Memory management', () => {
   it("creating an instance shouldn't hold a reference", async function () {
     this.timeout(1000)
@@ -16,7 +15,7 @@ describe('Memory management', () => {
 
     const didCollect = await testGC(i => new Store(i))
     if (!didCollect) {
-      assert.fail("the stores shouldn't be retained")
+      assert.fail("the stores should have been garbage collected")
     }
   })
 
@@ -40,7 +39,7 @@ describe('Memory management', () => {
       return x
     })
     if (!didCollect) {
-      assert.fail("the stores shouldn't be retained")
+      assert.fail("the stores should have been garbage collected")
     }
   })
 
@@ -64,7 +63,7 @@ describe('Memory management', () => {
 
     const didCollect = await testGC(i => new Store(i))
     if (!didCollect) {
-      assert.fail("the stores shouldn't be retained")
+      assert.fail("the stores should have been garbage collected")
     }
   })
 
@@ -95,7 +94,7 @@ describe('Memory management', () => {
       return x
     })
     if (!didCollect) {
-      assert.fail("the stores shouldn't be retained")
+      assert.fail("the stores should have been garbage collected")
     }
   })
 
@@ -126,7 +125,7 @@ describe('Memory management', () => {
 
     const didCollect = await testGC(i => new Store(i))
     if (didCollect) {
-      assert.fail("the stores shouldn't be cleaned up")
+      assert.fail("the stores should not have been garbage collected")
     }
   })
 
@@ -163,7 +162,7 @@ describe('Memory management', () => {
       destroyStore(v)
     })
     if (!didCollect) {
-      assert.fail("references won't have been cleaned up")
+      assert.fail("the stores should have been garbage collected")
     }
   })
 
@@ -193,7 +192,7 @@ describe('Memory management', () => {
       return x
     })
     if (!didCollect) {
-      assert.fail("references won't have been cleaned up")
+      assert.fail("the objects should have been garbage collected")
     }
   })
 })
