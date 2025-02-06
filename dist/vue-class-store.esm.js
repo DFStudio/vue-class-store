@@ -1,6 +1,6 @@
 /**
  * Bundle of: vue-class-store
- * Generated: 2024-12-05
+ * Generated: 2025-02-05
  * Version: 3.0.0
  */
 
@@ -151,8 +151,19 @@ function createWatches(instance, descriptors) {
  */
 const vueStoreWatchScope = Symbol("vue-class-store__watchScope");
 function getOrAddWatchScope(instance) {
-    var _a;
-    return (_a = instance[vueStoreWatchScope]) !== null && _a !== void 0 ? _a : (instance[vueStoreWatchScope] = markRaw(effectScope(true)));
+    let scope = instance[vueStoreWatchScope];
+    if (!scope) {
+        // we have to use `defineProperty` instead of `??=` here, because the latter will establish unwanted reactive
+        // dependencies. (see `tests/shared_watches.ts`)
+        scope = markRaw(effectScope(true));
+        Object.defineProperty(instance, vueStoreWatchScope, {
+            value: scope,
+            enumerable: false,
+            configurable: true,
+            writable: false,
+        });
+    }
+    return scope;
 }
 function destroyWatches(instance) {
     if (instance && instance[vueStoreWatchScope]) {
@@ -178,19 +189,10 @@ function destroyStore(instance) {
     // computed properties don't need to be cleaned up
     destroyWatches(instance);
 }
-//
-// interface Reactive {
-//   new(): object
-//
-//   <T extends abstract new(...args: any[]) => any>(constructor: T): T
-// }
 /**
  * Extend this class to have your class be reactive. Computed properties will be cached, but `on:foo` watch functions
  * aren't supported. If you need watches, use {@link VueStore}
  */
-// const VueStore: VueStore = function VueStore(this: object, constructor?: { new(...args: any[]): {} }): any {
-//   if (constructor === undefined) { // called as a bare constructor
-//
 class Reactive {
     constructor() {
         const descriptors = Object.entries(getAllDescriptors(Object.getPrototypeOf(this)));
