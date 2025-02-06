@@ -4,6 +4,7 @@ import Vue, {computed, nextTick, reactive, watch} from "vue";
 import {spy, SpySet} from "./test_utils";
 import {testWatches} from "./shared_watches";
 import {testProperties} from "./shared_properties";
+import {testCommon} from "./shared_common";
 
 type C = { new(...args: any[]): {} }
 
@@ -34,6 +35,7 @@ describe("createStore", () => {
     expect(store.plain).to.equal(-10)
   });
 
+  testCommon(c => c, Object, createStore)
   testProperties(c => c, Object, createStore)
   testWatches(c => c, Object, createStore)
 

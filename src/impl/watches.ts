@@ -125,7 +125,19 @@ export function createWatches(instance: object, descriptors: [string, PropertyDe
 const vueStoreWatchScope = Symbol("vue-class-store__watchScope")
 
 function getOrAddWatchScope(instance: object): EffectScope {
-  return instance[vueStoreWatchScope] ??= markRaw(effectScope(true))
+  let scope: EffectScope | undefined = instance[vueStoreWatchScope]
+  if (!scope) {
+    // we have to use `defineProperty` instead of `??=` here, because the latter will establish unwanted reactive
+    // dependencies. (see `tests/shared_watches.ts`)
+    scope = markRaw(effectScope(true))
+    Object.defineProperty(instance, vueStoreWatchScope, {
+      value: scope,
+      enumerable: false,
+      configurable: true,
+      writable: false,
+    })
+  }
+  return scope
 }
 
 export function destroyWatches(instance: object) {

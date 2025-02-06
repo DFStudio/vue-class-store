@@ -5,8 +5,10 @@ import {spy, SpySet} from "./test_utils";
 import {testWatches} from "./shared_watches";
 import {testProperties} from "./shared_properties";
 import {testPrivateMembers} from "./shared_private_members";
+import {testCommon} from "./shared_common";
 
 describe("@VueStore + extends VueStore", () => {
+  testCommon(VueStore, VueStore, v => v)
   testProperties(VueStore, VueStore, v => v)
   testWatches(VueStore, VueStore, v => v)
 
