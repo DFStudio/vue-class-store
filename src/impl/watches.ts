@@ -125,10 +125,10 @@ export function createWatches(instance: object, descriptors: [string, PropertyDe
 const vueStoreWatchScope = Symbol("vue-class-store__watchScope")
 
 function getOrAddWatchScope(instance: object): EffectScope {
-  let scope: EffectScope | undefined = instance[vueStoreWatchScope]
+  // We use `getOwnPropertyDescriptor` to avoid the reactive dependency, just for the sake of cleanliness
+  let scope: EffectScope | undefined = Object.getOwnPropertyDescriptor(instance, vueStoreWatchScope)?.value
   if (!scope) {
-    // we have to use `defineProperty` instead of `??=` here, because the latter will establish unwanted reactive
-    // dependencies. (see `tests/shared_watches.ts`)
+    // We use `defineProperty` to avoid establishing an immediately invalidated self dependency
     scope = markRaw(effectScope(true))
     Object.defineProperty(instance, vueStoreWatchScope, {
       value: scope,
