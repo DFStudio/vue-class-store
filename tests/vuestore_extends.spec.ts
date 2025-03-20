@@ -105,6 +105,83 @@ describe("@VueStore + extends VueStore", () => {
     expect(Store.prop).to.equal(20)
   });
 
+  describe("constructor", () => {
+    it("mutating a property during construction shouldn't immediately invalidate the computed", async () => {
+      const constructSpy = spy()
+
+      @VueStore
+      class Store extends VueStore {
+        public x: number = 0
+
+        constructor(x: number) {
+          super()
+          this.x = x
+        }
+      }
+
+      const cachedComputed = computed(() => {
+        constructSpy()
+        return new Store(5)
+      })
+
+      cachedComputed.value // <- constructs first value
+      cachedComputed.value // <- should be cached
+      expect(constructSpy).to.be.called.once
+    });
+
+    it("accessing then mutating a property during construction will immediately invalidate the computed that constructed it", async () => {
+      const constructSpy = spy()
+
+      @VueStore
+      class Store extends VueStore {
+        constructor(public x: number) {
+          super()
+          const n = this.x
+          this.x = x + 1
+        }
+      }
+
+      const cachedComputed = computed(() => {
+        constructSpy()
+        return new Store(5)
+      })
+
+      cachedComputed.value // <- constructs first value
+      cachedComputed.value // <- won't be cached
+      expect(constructSpy).to.be.called.exactly(2)
+    });
+
+    it("mutating a computed property during construction shouldn't immediately invalidate the computed that constructed it", async () => {
+      const constructSpy = spy()
+
+      @VueStore
+      class Store extends VueStore {
+        constructor(public x: number) {
+          super()
+
+          this.foo = x + 3
+        }
+
+        get foo() {
+          return this.x + 1
+        }
+
+        set foo(value) {
+          this.x = value - 1
+        }
+      }
+
+      const cachedComputed = computed(() => {
+        constructSpy()
+        return new Store(5)
+      })
+
+      cachedComputed.value // <- constructs first value
+      cachedComputed.value // <- should be cached
+      expect(constructSpy).to.be.called.once
+    });
+  });
+
   testPrivateMembers(VueStore, VueStore, v => v)
 
   describe("private members", () => {
