@@ -1,7 +1,7 @@
 import {assert, expect} from 'chai';
 import VueStore from '../src';
 import Vue, {computed, nextTick, reactive, watch} from "vue";
-import {spy, SpySet} from "./test_utils";
+import {bumpGlobalVersion, spy, SpySet} from "./test_utils";
 import {testWatches} from "./shared_watches";
 import {testProperties} from "./shared_properties";
 import {testPrivateMembers} from "./shared_private_members";
@@ -125,6 +125,7 @@ describe("@VueStore + extends VueStore", () => {
       })
 
       cachedComputed.value // <- constructs first value
+      bumpGlobalVersion()
       cachedComputed.value // <- should be cached
       expect(constructSpy).to.be.called.once
     });
@@ -147,6 +148,7 @@ describe("@VueStore + extends VueStore", () => {
       })
 
       cachedComputed.value // <- constructs first value
+      bumpGlobalVersion()
       cachedComputed.value // <- won't be cached
       expect(constructSpy).to.be.called.exactly(2)
     });
@@ -177,6 +179,7 @@ describe("@VueStore + extends VueStore", () => {
       })
 
       cachedComputed.value // <- constructs first value
+      bumpGlobalVersion()
       cachedComputed.value // <- should be cached
       expect(constructSpy).to.be.called.once
     });

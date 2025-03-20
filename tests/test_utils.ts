@@ -1,6 +1,6 @@
 import chai from 'chai';
 import {default as spiesPlugin} from 'chai-spies';
-import {watch, WatchSource} from "vue";
+import {ref, watch, WatchSource} from "vue";
 
 chai.use(spiesPlugin)
 
@@ -113,4 +113,12 @@ export async function testGC<V>(
     throw Error(`Invalid allocated/freed: ${allocated}/${freed}`)
   }
   return ratio > threshold
+}
+
+/**
+ * Computed values won't check if they're dirty when the global version is unchanged, so this will bump it to ensure the
+ * dirty check actually runs.
+ */
+export function bumpGlobalVersion() {
+  ref(0).value++
 }

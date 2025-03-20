@@ -1,6 +1,6 @@
 import {assert, expect} from 'chai';
 import {computed} from "vue";
-import {spy} from "./test_utils";
+import {bumpGlobalVersion, spy} from "./test_utils";
 
 /**
  * Shared between `createStore`, `@VueStore`, and `extends Reactive`
@@ -61,6 +61,7 @@ export function testCommon(
       })
 
       cachedComputed.value // <- constructs first value
+      bumpGlobalVersion()
       cachedComputed.value // <- should be cached
       expect(constructSpy).to.be.called.once
     });
@@ -83,6 +84,7 @@ export function testCommon(
         })
 
         cachedComputed.value // <- constructs first value
+        bumpGlobalVersion()
         cachedComputed.value // <- should be cached
         expect(constructSpy).to.be.called.once
       });
@@ -106,6 +108,7 @@ export function testCommon(
         })
 
         cachedComputed.value // <- constructs first value
+        bumpGlobalVersion()
         cachedComputed.value // <- should be cached
         expect(constructSpy).to.be.called.once
       });
@@ -128,6 +131,7 @@ export function testCommon(
         })
 
         cachedComputed.value // <- constructs first value
+        bumpGlobalVersion()
         cachedComputed.value // <- won't be cached
         expect(constructSpy).to.be.called.exactly(2)
       });
@@ -158,6 +162,7 @@ export function testCommon(
         })
 
         cachedComputed.value // <- constructs first value
+        bumpGlobalVersion()
         cachedComputed.value // <- should be cached
         expect(constructSpy).to.be.called.once
       });
@@ -183,6 +188,7 @@ export function testCommon(
       })
 
       cachedComputed.value // <- constructs first value
+      bumpGlobalVersion()
       cachedComputed.value // <- should be cached
       expect(constructSpy).to.be.called.once
     });
@@ -206,6 +212,7 @@ export function testCommon(
       })
 
       cachedComputed.value // <- constructs first value
+      bumpGlobalVersion()
       cachedComputed.value // <- won't be cached
       expect(constructSpy).to.be.called.exactly(2)
     });
@@ -236,6 +243,7 @@ export function testCommon(
       })
 
       cachedComputed.value // <- constructs first value
+      bumpGlobalVersion()
       cachedComputed.value // <- should be cached
       expect(constructSpy).to.be.called.once
     });
@@ -268,6 +276,7 @@ export function testCommon(
       })
 
       cachedComputed.value // <- constructs first value
+      bumpGlobalVersion()
       cachedComputed.value // <- should be cached
       expect(constructSpy).to.be.called.once
     });

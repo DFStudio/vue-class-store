@@ -11,6 +11,7 @@ export function createStore<T extends object>(model: T): T {
   const reactiveInstance = reactive(model)
   addComputed(reactiveInstance, descriptors)
   createWatches(reactiveInstance, descriptors)
+  fixRecomputeIfNoDeps()
   return reactiveInstance as T
 }
 
@@ -32,6 +33,7 @@ export class Reactive {
     const reactiveThis = reactive(this)
     // watches require late initialization to work properly, so we only do computed properties
     addComputed(reactiveThis, descriptors)
+    fixRecomputeIfNoDeps()
     return reactiveThis
   }
 }
@@ -81,6 +83,7 @@ const VueStore: VueStore = function VueStore(this: object, constructor?: { new(.
           if (wrapperClass.prototype === Object.getPrototypeOf(this)) {
             addComputed(reactiveThis, descriptors)
             createWatches(reactiveThis, descriptors)
+            fixRecomputeIfNoDeps()
           }
           return reactiveThis
         }
@@ -98,3 +101,17 @@ const vueStoreDecorated = Symbol("vue-class-store__decorated")
 function isDecorated(prototype: object) {
   return Object.hasOwn(prototype, vueStoreDecorated)
 }
+
+/**
+ * Creates a reactive dependency on a static value, which alleviates the issue where computed properties with no
+ * dependencies are recomputed every time (see issue: [vuejs/core#12337](https://github.com/vuejs/core/issues/12337))
+ *
+ * This can safely be removed when [vuejs/core#12341](https://github.com/vuejs/core/pull/12341) is merged and released
+ */
+function fixRecomputeIfNoDeps() {
+  // we use a key into an object instead of a ref because it'll show up more clearly in the renderTriggered debug report
+  noDepTarget[noDepKey]
+}
+
+const noDepKey = Symbol("vue-class-store__noDepFix")
+const noDepTarget = reactive({})
