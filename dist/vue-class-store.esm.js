@@ -1,7 +1,7 @@
 /**
  * Bundle of: vue-class-store
- * Generated: 2025-02-05
- * Version: 3.0.0
+ * Generated: 2025-03-20
+ * Version: 3.0.1
  */
 
 import { computed, markRaw, effectScope, watch, reactive } from 'vue';
@@ -19,26 +19,13 @@ function addComputed(instance, descriptors) {
     descriptors.forEach(([key, desc]) => {
         const { get, set } = desc;
         if (get) {
-            // We *could* just set `value: ref` in the descriptor and Vue will automatically unwrap the ref, however that
-            // causes errors if the object is passed through `Object.freeze()`, since the underlying value is a ref, but the
-            // proxy returns a different value: https://github.com/vuejs/core/issues/3024
-            if (set) {
-                const ref = computed({ get: get.bind(instance), set: set.bind(instance) });
-                Object.defineProperty(instance, key, {
-                    get: () => ref.value,
-                    set: (v) => ref.value = v,
-                    enumerable: desc.enumerable,
-                    configurable: true
-                });
-            }
-            else {
-                const ref = computed(get.bind(instance));
-                Object.defineProperty(instance, key, {
-                    get: () => ref.value,
-                    enumerable: desc.enumerable,
-                    configurable: true
-                });
-            }
+            const ref = set ? computed({ get: get.bind(instance), set: set.bind(instance) })
+                : computed(get.bind(instance));
+            Object.defineProperty(instance, key, {
+                value: ref,
+                enumerable: desc.enumerable,
+                configurable: true
+            });
         }
     });
 }
@@ -151,10 +138,11 @@ function createWatches(instance, descriptors) {
  */
 const vueStoreWatchScope = Symbol("vue-class-store__watchScope");
 function getOrAddWatchScope(instance) {
-    let scope = instance[vueStoreWatchScope];
+    var _a;
+    // We use `getOwnPropertyDescriptor` to avoid the reactive dependency, just for the sake of cleanliness
+    let scope = (_a = Object.getOwnPropertyDescriptor(instance, vueStoreWatchScope)) === null || _a === void 0 ? void 0 : _a.value;
     if (!scope) {
-        // we have to use `defineProperty` instead of `??=` here, because the latter will establish unwanted reactive
-        // dependencies. (see `tests/shared_watches.ts`)
+        // We use `defineProperty` to avoid establishing an immediately invalidated self dependency
         scope = markRaw(effectScope(true));
         Object.defineProperty(instance, vueStoreWatchScope, {
             value: scope,
@@ -180,6 +168,7 @@ function createStore(model) {
     const reactiveInstance = reactive(model);
     addComputed(reactiveInstance, descriptors);
     createWatches(reactiveInstance, descriptors);
+    fixRecomputeIfNoDeps();
     return reactiveInstance;
 }
 /**
@@ -199,6 +188,7 @@ class Reactive {
         const reactiveThis = reactive(this);
         // watches require late initialization to work properly, so we only do computed properties
         addComputed(reactiveThis, descriptors);
+        fixRecomputeIfNoDeps();
         return reactiveThis;
     }
 }
@@ -238,6 +228,7 @@ const VueStore = function VueStore(constructor) {
                     if (wrapperClass.prototype === Object.getPrototypeOf(this)) {
                         addComputed(reactiveThis, descriptors);
                         createWatches(reactiveThis, descriptors);
+                        fixRecomputeIfNoDeps();
                     }
                     return reactiveThis;
                 }
@@ -251,6 +242,18 @@ const vueStoreDecorated = Symbol("vue-class-store__decorated");
 function isDecorated(prototype) {
     return Object.hasOwn(prototype, vueStoreDecorated);
 }
+/**
+ * Creates a reactive dependency on a static value, which alleviates the issue where computed properties with no
+ * dependencies are recomputed every time (see issue: [vuejs/core#12337](https://github.com/vuejs/core/issues/12337))
+ *
+ * This can safely be removed when [vuejs/core#12341](https://github.com/vuejs/core/pull/12341) is merged and released
+ */
+function fixRecomputeIfNoDeps() {
+    // we use a key into an object instead of a ref because it'll show up more clearly in the renderTriggered debug report
+    noDepTarget[noDepKey];
+}
+const noDepKey = Symbol("vue-class-store__noDepFix");
+const noDepTarget = reactive({});
 
 export default VueStore;
 export { Reactive, createStore, destroyStore };
