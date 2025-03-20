@@ -210,7 +210,7 @@ export function testCommon(
       expect(constructSpy).to.be.called.exactly(2)
     });
 
-    it("mutating a computed property after construction will immediately invalidate the computed that constructed it", async () => {
+    it("mutating a computed property after construction shouldn't immediately invalidate the computed that constructed it", async () => {
       const constructSpy = spy()
 
       @decorator
@@ -236,8 +236,8 @@ export function testCommon(
       })
 
       cachedComputed.value // <- constructs first value
-      cachedComputed.value // <- won't be cached
-      expect(constructSpy).to.be.called.exactly(2)
+      cachedComputed.value // <- should be cached
+      expect(constructSpy).to.be.called.once
     });
 
     it("assigning to a computed prop during construction shouldn't immediately invalidate the computed that constructed it", async () => {

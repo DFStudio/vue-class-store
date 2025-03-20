@@ -61,7 +61,7 @@ export function testProperties(
       expect(recomputeSpy).to.be.called()
     });
 
-    it("computed properties should work after Object.freeze", () => {
+    it("computed properties don't work after Object.freeze", () => {
       @decorator
       class Store extends superclass {
         plain = 10
@@ -74,7 +74,7 @@ export function testProperties(
       let store = wrapperFn(new Store())
       expect(store.computed).to.equal(11)
       Object.freeze(store)
-      expect(() => store.computed).not.to.throw()
+      expect(() => store.computed).to.throw(TypeError, "the proxy did not return its actual value")
     });
   })
 }
