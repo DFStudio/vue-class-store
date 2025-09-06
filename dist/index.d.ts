@@ -1,7 +1,8 @@
+import { ShallowReactive } from 'vue';
 /**
  * Create a store from the given object. The returned value will be a wrapper around the passed model
  */
-export declare function createStore<T extends object>(model: T): T;
+export declare function createStore<T extends object>(model: T): ShallowReactive<T>;
 /**
  * Destroy the given store, destroying its computed properties and watches, allowing it to be garbage collected.
  */
@@ -10,11 +11,9 @@ export declare function destroyStore(instance: object): void;
  * Extend this class to have your class be reactive. Computed properties will be cached, but `on:foo` watch functions
  * aren't supported. If you need watches, use {@link VueStore}
  */
-export declare class Reactive {
-    constructor();
-}
+export declare const Reactive: new () => ShallowReactive<object>;
 interface VueStore {
-    new (): object;
+    new (): ShallowReactive<object>;
     <T extends abstract new (...args: any[]) => any>(constructor: T): T;
 }
 /**

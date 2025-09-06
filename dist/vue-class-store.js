@@ -1,7 +1,7 @@
 /**
  * Bundle of: vue-class-store
- * Generated: 2025-03-20
- * Version: 3.0.1
+ * Generated: 2025-09-05
+ * Version: 3.0.2
  */
 
 (function (global, factory) {
@@ -186,16 +186,14 @@ specified. You can specify the intended behavior and suppress this warning by se
    * Extend this class to have your class be reactive. Computed properties will be cached, but `on:foo` watch functions
    * aren't supported. If you need watches, use {@link VueStore}
    */
-  class Reactive {
-      constructor() {
-          const descriptors = Object.entries(getAllDescriptors(Object.getPrototypeOf(this)));
-          const reactiveThis = vue.reactive(this);
-          // watches require late initialization to work properly, so we only do computed properties
-          addComputed(reactiveThis, descriptors);
-          fixRecomputeIfNoDeps();
-          return reactiveThis;
-      }
-  }
+  const Reactive = function Reactive() {
+      const descriptors = Object.entries(getAllDescriptors(Object.getPrototypeOf(this)));
+      const reactiveThis = vue.reactive(this);
+      // watches require late initialization to work properly, so we only do computed properties
+      addComputed(reactiveThis, descriptors);
+      fixRecomputeIfNoDeps();
+      return reactiveThis;
+  };
   /**
    * Create a fully-featured Vue store. Computed properties will be cached and watches can be added by defining
    * `on:some.watch` functions.
