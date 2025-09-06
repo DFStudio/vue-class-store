@@ -1,6 +1,6 @@
 import {assert, expect} from 'chai';
 import {Reactive} from '../src';
-import Vue, {computed, nextTick, reactive, watch} from "vue";
+import Vue, {computed, nextTick, reactive, ref, watch} from "vue";
 import {spy, SpySet} from "./test_utils";
 import {testWatches} from "./shared_watches";
 import {testProperties} from "./shared_properties";
@@ -27,6 +27,34 @@ describe("extends Reactive", () => {
     store.changeValue()
     await nextTick()
     expect(valueSpy).to.be.called.with(100, 10)
+  });
+
+  it("protected methods should still function", async () => {
+    class Store extends Reactive {
+      value = 10
+
+      protected changeValueImpl() {
+        this.value = 100
+      }
+
+      changeValue() {
+        this.changeValueImpl()
+      }
+    }
+
+    const store = new Store()
+    const valueSpy = spy()
+    watch(() => store.value, valueSpy)
+
+    store.changeValue()
+    await nextTick()
+    expect(valueSpy).to.be.called.with(100, 10)
+
+    /**
+     * This should compile. If this error is shown, then it's broken:
+     * > TS2741: Property `changeValueImpl` is missing in type `{...}` but required in type `Store`
+     */
+    const unwrapped: Store = ref(store).value
   });
 
   it("non-arrow functions should have `this` bound to the reactive instance", async () => {

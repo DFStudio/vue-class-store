@@ -1,4 +1,4 @@
-import {reactive} from 'vue'
+import {reactive, ShallowReactive} from 'vue'
 import {getAllDescriptors} from "./impl/util";
 import {addComputed} from "./impl/computed";
 import {createWatches, destroyWatches} from "./impl/watches";
@@ -6,7 +6,7 @@ import {createWatches, destroyWatches} from "./impl/watches";
 /**
  * Create a store from the given object. The returned value will be a wrapper around the passed model
  */
-export function createStore<T extends object>(model: T): T {
+export function createStore<T extends object>(model: T): ShallowReactive<T> {
   const descriptors = Object.entries(getAllDescriptors(model))
   const reactiveInstance = reactive(model)
   addComputed(reactiveInstance, descriptors)
@@ -27,19 +27,17 @@ export function destroyStore(instance: object) {
  * Extend this class to have your class be reactive. Computed properties will be cached, but `on:foo` watch functions
  * aren't supported. If you need watches, use {@link VueStore}
  */
-export class Reactive {
-  constructor() {
-    const descriptors = Object.entries(getAllDescriptors(Object.getPrototypeOf(this)))
-    const reactiveThis = reactive(this)
-    // watches require late initialization to work properly, so we only do computed properties
-    addComputed(reactiveThis, descriptors)
-    fixRecomputeIfNoDeps()
-    return reactiveThis
-  }
-}
+export const Reactive = function Reactive(this: object): any {
+  const descriptors = Object.entries(getAllDescriptors(Object.getPrototypeOf(this)))
+  const reactiveThis = reactive(this)
+  // watches require late initialization to work properly, so we only do computed properties
+  addComputed(reactiveThis, descriptors)
+  fixRecomputeIfNoDeps()
+  return reactiveThis
+} as any as new () => ShallowReactive<object>
 
 interface VueStore {
-  new(): object
+  new(): ShallowReactive<object>
 
   <T extends abstract new(...args: any[]) => any>(constructor: T): T
 }
